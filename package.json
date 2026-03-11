@@ -1,0 +1,10 @@
+{
+  "name": "github-intelligence-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  }
+}
