@@ -1,6 +1,12 @@
 # GitHub Intelligence MCP Server
 
+
+
 An enterprise-grade AI-powered Model Context Protocol (MCP) server for exploring GitHub repositories, issues, commits, and related code.
+
+[![Node version](https://img.shields.io/badge/node-%3E%3D18-success.svg?style=flat-square)](https://nodejs.org/en/download/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg?style=flat-square)](https://www.typescriptlang.org/)
 
 ## 🌟 Overview & Value Proposition
 
