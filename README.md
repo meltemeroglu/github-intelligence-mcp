@@ -1,4 +1,4 @@
-# GitHub Intelligence MCP Server
+# 🚀 GitHub Intelligence MCP Server
 
 
 
