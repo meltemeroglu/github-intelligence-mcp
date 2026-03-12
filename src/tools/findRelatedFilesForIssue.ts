@@ -53,6 +53,7 @@ export const findRelatedFilesForIssueConfig = {
             owner: z.string(),
             repo: z.string(),
             issueNumber: z.number().int().positive(),
+            limit: z.number().int().positive().optional(),
         }),
     },
 };
@@ -61,10 +62,12 @@ export async function findRelatedFilesForIssueHandler({
     owner,
     repo,
     issueNumber,
+    limit = 8,
 }: {
     owner: string;
     repo: string;
     issueNumber: number;
+    limit?: number;
 }) {
     try {
         const issue = await fetchIssueByNumber(owner, repo, issueNumber);
@@ -92,7 +95,7 @@ export async function findRelatedFilesForIssueHandler({
 
         const uniqueFiles = Array.from(
             new Map(files.map((f) => [f.path, f])).values()
-        ).slice(0, 8);
+        ).slice(0, limit);
 
         const response = {
             success: true,
