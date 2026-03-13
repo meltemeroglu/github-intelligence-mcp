@@ -1,16 +1,19 @@
 import { z } from "zod";
-import { fetchRecentCommits } from "../services/github.js";
+import { fetchRecentCommits } from "../../services/github.js";
+import { errorResponse, successResponse } from "../../utils/response.js";
+import { auditLog } from "../../utils/audit.js";
 
 export const getRecentCommitsConfig = {
-    name: "get_recent_commits",
+    name: "get_github_repo_recent_commits",
     definition: {
-        title: "Recent GitHub Commits",
-        description: "Get recent commits from a repository",
+        title: "Get GitHub Repository Recent Commits",
+        description: "Get recent commits from a GitHub repository",
         inputSchema: z.object({
             owner: z.string(),
             repo: z.string(),
             limit: z.number().int().positive().optional(),
         }),
+        type: "read"
     },
 };
 
@@ -41,26 +44,23 @@ export async function getRecentCommitsHandler({
             commits: items,
         };
 
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: JSON.stringify(result, null, 2),
-                },
-            ],
-            structuredContent: result,
-        };
+        auditLog({
+            tool: "get_github_repo_recent_commits",
+            status: "success",
+            details: { owner, repo, limit },
+        });
+
+        return successResponse(result);
     } catch (error) {
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: error instanceof Error ? error.message : "Unknown error",
-                },
-            ],
-            structuredContent: {
-                success: false,
-            },
-        };
+        const message =
+            error instanceof Error ? error.message : "Unknown repository error";
+
+        auditLog({
+            tool: "get_github_repo_recent_commits",
+            status: "error",
+            details: { owner, repo, limit, message },
+        });
+
+        return errorResponse(message);
     }
 }

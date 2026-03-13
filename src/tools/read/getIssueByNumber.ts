@@ -1,18 +1,22 @@
 import { z } from "zod";
-import { fetchIssueByNumber } from "../services/github.js";
+import { fetchIssueByNumber } from "../../services/github.js";
+import { auditLog } from "../../utils/audit.js";
+import { errorResponse, successResponse } from "../../utils/response.js";
 
 export const getIssueByNumberConfig = {
-    name: "get_issue_by_number",
+    name: "get_github_issue_by_number",
     definition: {
         title: "Get GitHub Issue By Number",
-        description: "Get a GitHub issue by its number",
+        description: "Get a GitHub issue by its number. Use this when the user asks about a GitHub issue.",
         inputSchema: z.object({
             owner: z.string(),
             repo: z.string(),
             issueNumber: z.number().int().positive(),
         }),
+        type: "read"
     },
 };
+
 
 export async function getIssueByNumberHandler({
     owner,
@@ -45,26 +49,24 @@ export async function getIssueByNumberHandler({
             },
         };
 
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: JSON.stringify(result, null, 2),
-                },
-            ],
-            structuredContent: result,
-        };
+        auditLog({
+            tool: "get_github_issue_by_number",
+            status: "success",
+            details: { owner, repo, issueNumber },
+        });
+
+        return successResponse(result);
+
     } catch (error) {
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: error instanceof Error ? error.message : "Unknown error",
-                },
-            ],
-            structuredContent: {
-                success: false,
-            },
-        };
+        const message =
+            error instanceof Error ? error.message : "Unknown repository error";
+
+        auditLog({
+            tool: "github_get_repository",
+            status: "error",
+            details: { owner, repo, message },
+        });
+
+        return errorResponse(message);
     }
 }

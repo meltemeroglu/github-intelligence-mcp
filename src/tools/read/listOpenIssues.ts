@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { fetchOpenIssues } from "../services/github.js";
+import { fetchOpenIssues } from "../../services/github.js";
+import { errorResponse, successResponse } from "../../utils/response.js";
+import { auditLog } from "../../utils/audit.js";
 
 export const listOpenIssuesConfig = {
-    name: "list_open_issues",
+    name: "github_list_open_issues",
     definition: {
         title: "List Open GitHub Issues",
         description: "List open issues of a GitHub repository",
@@ -11,6 +13,7 @@ export const listOpenIssuesConfig = {
             repo: z.string(),
             limit: z.number().int().positive().optional(),
         }),
+        type: "read"
     },
 };
 
@@ -51,26 +54,24 @@ export async function listOpenIssuesHandler({
             issues: items,
         };
 
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: JSON.stringify(result, null, 2),
-                },
-            ],
-            structuredContent: result,
-        };
+        auditLog({
+            tool: "github_list_open_issues",
+            status: "success",
+            details: { owner, repo, limit },
+        });
+
+        return successResponse(result);
     } catch (error) {
-        return {
-            content: [
-                {
-                    type: "text" as const,
-                    text: error instanceof Error ? error.message : "Unknown error",
-                },
-            ],
-            structuredContent: {
-                success: false,
-            },
-        };
+        const message =
+            error instanceof Error ? error.message : "Unknown repository error";
+
+        auditLog({
+            tool: "github_list_open_issues",
+            status: "error",
+            details: { owner, repo, limit, message },
+        });
+
+        return errorResponse(message);
     }
+
 }
