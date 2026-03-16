@@ -45,3 +45,35 @@ export function errorResponse(message: string, meta?: Record<string, unknown>) {
         },
     };
 }
+
+export function dryRunResponse<T>(
+    action: string,
+    data: T,
+    meta?: Record<string, unknown>
+) {
+    return {
+        content: [
+            {
+                type: "text" as const,
+                text: JSON.stringify(
+                    {
+                        success: true,
+                        dryRun: true,
+                        action,
+                        data,
+                        meta: meta ?? {},
+                    },
+                    null,
+                    2
+                ),
+            },
+        ],
+        structuredContent: {
+            success: true,
+            dryRun: true,
+            action,
+            data,
+            meta: meta ?? {},
+        },
+    };
+}

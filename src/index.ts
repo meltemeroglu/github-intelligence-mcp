@@ -1,71 +1,53 @@
+import "dotenv/config";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-
-import {
-    getRepoInfoConfig,
-    getRepoInfoHandler,
-} from "./tools/read/getRepoInfo.js";
-import {
-    getRecentCommitsConfig,
-    getRecentCommitsHandler,
-} from "./tools/read/getRecentCommits.js";
-import {
-    getIssueByNumberConfig,
-    getIssueByNumberHandler,
-} from "./tools/read/getIssueByNumber.js";
-import {
-    listOpenIssuesConfig,
-    listOpenIssuesHandler,
-} from "./tools/read/listOpenIssues.js";
-import {
-    findRelatedFilesForIssueConfig,
-    findRelatedFilesForIssueHandler,
-} from "./tools/read/findRelatedFilesForIssue.js";
-import {
-    createPullRequestConfig,
-    createPullRequestHandler,
-} from "./tools/write/createPullRequest.js";
+import { registeredTools } from "./tools/index.js";
+import { auditLog } from "./utils/audit.js";
+import { canExecuteTool } from "./utils/policy.js";
+import { errorResponse } from "./utils/response.js";
+import { approvalRequiredResponse } from "./utils/approval.js";
 
 const server = new McpServer({
     name: "github-intelligence-mcp",
     version: "1.0.0",
 });
 
-server.registerTool(
-    getRepoInfoConfig.name,
-    getRepoInfoConfig.definition,
-    getRepoInfoHandler
-);
+for (const tool of registeredTools) {
+    server.registerTool(tool.name, tool.definition, async (args) => {
+        const policy = canExecuteTool(tool.name, tool.type);
 
-server.registerTool(
-    getRecentCommitsConfig.name,
-    getRecentCommitsConfig.definition,
-    getRecentCommitsHandler
-);
+        auditLog({
+            tool: tool.name,
+            status: "success",
+            details: {
+                phase: "policy-check",
+                toolType: tool.type,
+                allowed: policy.allowed,
+                requiresApproval: policy.requiresApproval,
+                dryRunOnly: policy.dryRunOnly,
+                reason: policy.reason,
+            },
+        });
 
-server.registerTool(
-    getIssueByNumberConfig.name,
-    getIssueByNumberConfig.definition,
-    getIssueByNumberHandler
-);
+        if (!policy.allowed) {
+            return errorResponse(`Tool execution denied: ${policy.reason}`, {
+                tool: tool.name,
+                toolType: tool.type,
+            });
+        }
 
-server.registerTool(
-    listOpenIssuesConfig.name,
-    listOpenIssuesConfig.definition,
-    listOpenIssuesHandler
-);
+        if (tool.type === "write" && policy.requiresApproval) {
+            return approvalRequiredResponse(tool.name, {
+                toolType: tool.type,
+                dryRunOnly: policy.dryRunOnly,
+                reason: policy.reason,
+            });
+        }
 
-server.registerTool(
-    findRelatedFilesForIssueConfig.name,
-    findRelatedFilesForIssueConfig.definition,
-    findRelatedFilesForIssueHandler
-);
+        return tool.handler(args);
+    });
+}
 
-server.registerTool(
-    createPullRequestConfig.name,
-    createPullRequestConfig.definition,
-    createPullRequestHandler
-);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

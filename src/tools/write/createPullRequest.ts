@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { createPullRequest } from "../../services/github.js";
-import { successResponse, errorResponse } from "../../utils/response.js";
+import {
+    successResponse,
+    errorResponse,
+    dryRunResponse,
+} from "../../utils/response.js";
 import { auditLog } from "../../utils/audit.js";
 
 export const createPullRequestConfig = {
@@ -17,6 +21,7 @@ export const createPullRequestConfig = {
             body: z.string().optional(),
             head: z.string().min(1),
             base: z.string().min(1).default("main"),
+            approved: z.boolean().optional(),
         }),
     },
 };
@@ -28,6 +33,7 @@ export async function createPullRequestHandler({
     body,
     head,
     base,
+    approved,
 }: {
     owner: string;
     repo: string;
@@ -35,8 +41,40 @@ export async function createPullRequestHandler({
     body?: string;
     head: string;
     base: string;
+    approved?: boolean;
 }) {
     try {
+        const dryRunMode = process.env.WRITE_TOOLS_DRY_RUN !== "false";
+
+        const plannedAction = {
+            owner,
+            repo,
+            title,
+            body: body ?? "",
+            head,
+            base,
+        };
+
+        if (dryRunMode || approved !== true) {
+            auditLog({
+                tool: "github_create_pull_request",
+                status: "success",
+                details: {
+                    phase: "dry-run",
+                    owner,
+                    repo,
+                    head,
+                    base,
+                    title,
+                },
+            });
+
+            return dryRunResponse("github_create_pull_request", plannedAction, {
+                operationType: "write",
+                requiresApproval: true,
+            });
+        }
+
         const pr = await createPullRequest(
             owner,
             repo,
@@ -59,6 +97,7 @@ export async function createPullRequestHandler({
             tool: "github_create_pull_request",
             status: "success",
             details: {
+                phase: "executed",
                 owner,
                 repo,
                 head,
@@ -69,7 +108,7 @@ export async function createPullRequestHandler({
 
         return successResponse(result, {
             operationType: "write",
-            requiresApproval: true,
+            executed: true,
         });
     } catch (error) {
         const message =
@@ -90,7 +129,6 @@ export async function createPullRequestHandler({
 
         return errorResponse(message, {
             operationType: "write",
-            requiresApproval: true,
         });
     }
 }
