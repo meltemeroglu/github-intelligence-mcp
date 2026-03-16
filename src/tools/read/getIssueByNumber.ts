@@ -4,7 +4,7 @@ import { auditLog } from "../../utils/audit.js";
 import { errorResponse, successResponse } from "../../utils/response.js";
 
 export const getIssueByNumberConfig = {
-    name: "get_github_issue_by_number",
+    name: "github_get_issue_by_number",
     definition: {
         title: "Get GitHub Issue By Number",
         description: "Get a GitHub issue by its number. Use this when the user asks about a GitHub issue.",
@@ -50,7 +50,7 @@ export async function getIssueByNumberHandler({
         };
 
         auditLog({
-            tool: "get_github_issue_by_number",
+            tool: "github_get_issue_by_number",
             status: "success",
             details: { owner, repo, issueNumber },
         });
@@ -62,7 +62,7 @@ export async function getIssueByNumberHandler({
             error instanceof Error ? error.message : "Unknown repository error";
 
         auditLog({
-            tool: "github_get_repository",
+            tool: "github_get_issue_by_number",
             status: "error",
             details: { owner, repo, message },
         });

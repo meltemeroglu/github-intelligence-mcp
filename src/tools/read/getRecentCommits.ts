@@ -4,7 +4,7 @@ import { errorResponse, successResponse } from "../../utils/response.js";
 import { auditLog } from "../../utils/audit.js";
 
 export const getRecentCommitsConfig = {
-    name: "get_github_repo_recent_commits",
+    name: "github_get_recent_commits",
     definition: {
         title: "Get GitHub Repository Recent Commits",
         description: "Get recent commits from a GitHub repository",
@@ -45,7 +45,7 @@ export async function getRecentCommitsHandler({
         };
 
         auditLog({
-            tool: "get_github_repo_recent_commits",
+            tool: "github_get_recent_commits",
             status: "success",
             details: { owner, repo, limit },
         });
@@ -56,7 +56,7 @@ export async function getRecentCommitsHandler({
             error instanceof Error ? error.message : "Unknown repository error";
 
         auditLog({
-            tool: "get_github_repo_recent_commits",
+            tool: "github_get_recent_commits",
             status: "error",
             details: { owner, repo, limit, message },
         });
